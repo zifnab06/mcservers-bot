@@ -7,6 +7,9 @@ approved_taglist = ['vanilla', 'semi-vanilla', 'smp', 'pve', 'pvp', 'creative', 
 
 r = praw.Reddit(user_agent="zifnab06_test_bot")
 
+#Throw credentials in next line, uncomment
+#r.login('user', 'pass')
+
 already_done = []
 while True:
     for submission in r.get_subreddit('mcservers').get_new(limit=5):
