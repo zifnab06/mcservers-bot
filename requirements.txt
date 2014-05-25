@@ -1,1 +1,2 @@
-praw==2.1.14
+praw
+mongoengine
