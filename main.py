@@ -28,6 +28,9 @@ r = praw.Reddit(user_agent="mcservers-bot")
 
 r.login(config.USERNAME, config.PASSWORD)
 
+#Throw credentials in next line, uncomment
+#r.login('user', 'pass')
+
 already_done = []
 
 for object in Submission.objects():
