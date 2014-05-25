@@ -1,0 +1,7 @@
+USERNAME = ''
+PASSWORD = ''
+
+SUBREDDIT = ''
+
+APPROVED_TAGLIST = ['vanilla', 'semi-vanilla', 'smp', 'pve', 'pvp', 'creative', 'anarchy', 'chaos', 'hardcore', 'tekkit', 'ftb', 'adventure', 'hub', 'minigames', 'wanted']
+
