@@ -13,11 +13,6 @@ class Submission(Document):
     s = StringField()
     d = DateTimeField()
 
-    meta = {
-        'indexes': [
-            { 'fields': ['d'], 'expiresAfterSeconds': 1123200}
-        ]
-    }
 def strip_utf8(str):
     return ''.join([x if ord(x) < 128 else "" for x in str])
 
