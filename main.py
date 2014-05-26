@@ -54,7 +54,7 @@ while True:
                     break
 
             #Remove posts with no tags
-            if tags is None:
+            if len(tags) == 0:
                 comment += '\n\n- it does not have any primary tags. Please read our [rules](http://www.reddit.com/r/mcservers/wiki/index) and create a new post with [valid primary tags](http://www.reddit.com/r/mcservers/wiki/index#wiki_.5Btags.5D_.26_.7Bbrackets.7D)'
 
             #Remove posts with <350 body
@@ -70,6 +70,11 @@ while True:
             tfs = ['24/7', '24x7']
             if any (word in post.title.lower() for word in tfs) or any (word in post.selftext.lower() for word in tfs):
                 comment += "\n\n- it is labeled as 24/7. All servers are required to be online 24/7 to be posted to /r/mcservers. Please remove any reference to your server being 24/7 and repost."
+
+            #make sure they have rules
+            rules = ['rules', 'racism', 'sexism', 'griefing', 'greifing', 'mature']
+            if not any(word in post.selftext.lower() for word in rules):
+                comment += '\n\n- your server appears to have no rules. Please edit your post to include some rules, then [message the moderators to have your post approved](http://www.reddit.com/message/compose?to=%2Fr%2Fmcservers}).'
 
             #Remove post if any of above tests passed
             if comment != 'Your submission has been removed because:':
