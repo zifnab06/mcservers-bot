@@ -68,7 +68,7 @@ while True:
 
             #make sure they have rules
             rules = ['rules', 'racism', 'sexism', 'griefing', 'greifing', 'mature']
-            if not any(word in post.selftext.lower() for word in rules):
+            if not any(word in post.selftext.lower() for word in rules) and not '[wanted]' in post.title.lower():
                 comment += '\n\n- your server appears to have no rules. Please edit your post to include some rules, then [message the moderators to have your post approved](http://www.reddit.com/message/compose?to=%2Fr%2Fmcservers}).'
 
             #Remove post if any of above tests passed
