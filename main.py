@@ -38,7 +38,7 @@ while True:
                 continue
 
 
-            tags = re.findall(r'\[([\w+\-]+)\]', post.title)
+            tags = re.findall(r'\[(.*?)\]', post.title)
 
             comment = 'Your submission has been removed because:'
 
