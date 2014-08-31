@@ -12,6 +12,7 @@ class Submission(Document):
     t = StringField()
     s = StringField()
     d = DateTimeField()
+    r = BooleanField()
 
 def strip_utf8(str):
     return ''.join([x if ord(x) < 128 else "" for x in str])
@@ -28,6 +29,7 @@ already_done = []
 for object in Submission.objects():
     already_done.append(object.i)
 
+print ('Posts imported: {0}'.format(len(already_done)))
 print (already_done)
 while True:
     try: 
@@ -71,14 +73,26 @@ while True:
             if not any(word in post.selftext.lower() for word in rules) and not '[wanted]' in post.title.lower():
                 comment += '\n\n- your server appears to have no rules. Please edit your post to include some rules, then [message the moderators to have your post approved](http://www.reddit.com/message/compose?to=%2Fr%2Fmcservers}).'
 
+
+            #Remove posts with only wanted tag
+            if len(tags) == 1 and tags[0].lower() == 'wanted':
+                comment += '\n\n- you have not included any valid tags to describe the server you are looking for. Please read our [rules](http://www.reddit.com/wiki/index) and create a new post with valid primary tags'
+
+
+            #Remove posts that ask for donations
+            donations = ['donate', 'donation']
+            if not any(word in post.selftext.lower() for word in donations):
+                comment += '\n\n- your post mentions donations. Please remove any mention to donations and message the moderators'
+
+            removed = (comment != 'Your submission has been removed because:')
             #Remove post if any of above tests passed
-            if comment != 'Your submission has been removed because:':
+            if removed:
                 comment +='\n\n*I am a bot, this action was performed automatically. If you feel this was a mistake, please [message the moderators](http://reddit.com/message/compose?to=/r/mcservers&subject={0})*'.format(post.url)
                 c = post.add_comment(comment)
                 c.distinguish()
                 post.remove()
                 print('Post was removed tags: {0} - {1} - {2}'.format(post.id, strip_utf8(post.title), post.url))
-            Submission(i=post.id, u=post.author.name, t=post.title, s=post.selftext, d=datetime.utcnow()).save()
+            Submission(i=post.id, u=post.author.name, t=post.title, s=post.selftext, d=datetime.utcnow(), r=removed).save()
             already_done.append(post.id)
         time.sleep(5)
     except Exception as e:
