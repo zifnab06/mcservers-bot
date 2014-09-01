@@ -7,18 +7,18 @@ import local_config as config
 from mongoengine import *
 from datetime import datetime
 
-'''class Submission(Document):
+class Submission(Document):
     i = StringField()
     u = StringField()
     t = StringField()
     s = StringField()
     d = DateTimeField()
     r = BooleanField()
-'''
+
 def strip_utf8(str):
     return ''.join([x if ord(x) < 128 else "" for x in str])
 
-#connect('mcservers')
+connect('mcservers')
 
 r = praw.Reddit(user_agent="mcservers-bot")
 
@@ -27,8 +27,8 @@ r.login(config.USERNAME, config.PASSWORD)
 moderators = [x.name for x in r.get_subreddit('mcservers').get_moderators()]
 already_done = []
 
-#for object in Submission.objects():
-#    already_done.append(object.i)
+for object in Submission.objects():
+    already_done.append(object.i)
 
 print ('Posts imported: {0}'.format(len(already_done)))
 
@@ -100,7 +100,7 @@ while True:
                 c.distinguish()
                 post.remove()
                 print('Post was removed: {0} - {1} - {2}'.format(post.id, strip_utf8(post.title), post.url))
-            #Submission(i=post.id, u=post.author.name, t=post.title, s=post.selftext, d=datetime.utcnow(), r=not not remove).save()
+            Submission(i=post.id, u=post.author.name, t=post.title, s=post.selftext, d=datetime.utcnow(), r=not not remove).save()
             already_done.append(post.id)
         time.sleep(5)
     except Exception as e:
