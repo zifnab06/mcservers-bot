@@ -1,23 +1,24 @@
 import praw
-import re
+import yaml
 import time
+import re
 
 import local_config as config
 from mongoengine import *
 from datetime import datetime
 
-class Submission(Document):
+'''class Submission(Document):
     i = StringField()
     u = StringField()
     t = StringField()
     s = StringField()
     d = DateTimeField()
     r = BooleanField()
-
+'''
 def strip_utf8(str):
     return ''.join([x if ord(x) < 128 else "" for x in str])
 
-connect('mcservers')
+#connect('mcservers')
 
 r = praw.Reddit(user_agent="mcservers-bot")
 
@@ -26,73 +27,80 @@ r.login(config.USERNAME, config.PASSWORD)
 moderators = [x.name for x in r.get_subreddit('mcservers').get_moderators()]
 already_done = []
 
-for object in Submission.objects():
-    already_done.append(object.i)
+#for object in Submission.objects():
+#    already_done.append(object.i)
 
 print ('Posts imported: {0}'.format(len(already_done)))
-print (already_done)
+
+with open('reasons.yml') as f:
+    reasons = yaml.load(f.read())
+from pprint import pprint
+pprint(reasons)
+
 while True:
     try: 
         for post in r.get_subreddit(config.SUBREDDIT).get_new(limit=5):
             if post.id in already_done:
                 continue
-            if post.author.name in moderators:
-                continue
+            #if post.author.name in moderators:
+            #    continue
 
 
             tags = re.findall(r'\[(.*?)\]', post.title)
 
-            comment = 'Your submission has been removed because:'
-
+            remove = []
+            bad_tags = []
             #Remove posts with invalid tags
             for tag in tags:
                 if not tag.lower() in config.APPROVED_TAGLIST:
-                    comment += '\n\n- your title has incorrect primary tags. Please read our [rules](http://www.reddit.com/r/mcservers/wiki/index) and create a new post with [valid primary tags](http://www.reddit.com/r/mcservers/wiki/index#wiki_.5Btags.5D_.26_.7Bbrackets.7D)'
-                    break
+                    bad_tags.append(tag)
+
+            for bad_tag in bad_tags:
+                remove.append(reasons['badtag'].format(bad_tag))
 
             #Remove posts with no tags
             if len(tags) == 0:
-                comment += '\n\n- it does not have any primary tags. Please read our [rules](http://www.reddit.com/r/mcservers/wiki/index) and create a new post with [valid primary tags](http://www.reddit.com/r/mcservers/wiki/index#wiki_.5Btags.5D_.26_.7Bbrackets.7D)'
+                remove.append(reasons['notags'])
 
             #Remove posts with <350 body
-            if post.selftext and len(post.selftext) < 350:
-                comment += '\n\n- your post is shorter than 350 characters. Typically, this means that your post does not conform to our [description formatting](http://www.reddit.com/r/mcservers/wiki/index#wiki_description_example). Please reformat your post and [send the moderators a message](http://www.reddit.com/message/compose?to=%2Fr%2Fmcservers&subject=Spam+Filter&message=Please%20put%20link%20to%20post%20here:%0A%0AName%20of%20your%20server:%0A%0AAdditional%20comments:) to have them look over the post and approve it.'
+            if post.selftext and len(post.selftext) < 350 and not '[wanted]' in post.title.lower():
+                remove.append(reasons['shorttext'])
 
             #Nuke offline servers
             offline = ['offline', 'cracked', 'hamachi']
             if any(word in post.title.lower() for word in offline) or any (word in post.selftext.lower() for word in offline):
-                comment += '\n\n- Hamachi, Cracked, Offline, or test servers are not allowed here here, please post them in [MCTestServers](http://www.reddit.com/r/mctestservers).'
+                remove.append(reasons['offline'])
 
             #nuke 24/7
             tfs = ['24/7', '24x7']
             if any (word in post.title.lower() for word in tfs) or any (word in post.selftext.lower() for word in tfs):
-                comment += "\n\n- it is labeled as 24/7. All servers are required to be online 24/7 to be posted to /r/mcservers. Please remove any reference to your server being 24/7 and repost."
+                remove.append(reasons['24x7'])
 
             #make sure they have rules
             rules = ['rules', 'racism', 'sexism', 'griefing', 'greifing', 'mature']
             if not any(word in post.selftext.lower() for word in rules) and not '[wanted]' in post.title.lower():
-                comment += '\n\n- your server appears to have no rules. Please edit your post to include some rules, then [message the moderators to have your post approved](http://www.reddit.com/message/compose?to=%2Fr%2Fmcservers}).'
+                remove.append(reasons['rules'])
 
 
             #Remove posts with only wanted tag
             if len(tags) == 1 and tags[0].lower() == 'wanted':
-                comment += '\n\n- you have not included any valid tags to describe the server you are looking for. Please read our [rules](http://www.reddit.com/wiki/index) and create a new post with valid primary tags'
+                remove.append(reasons['wantednotags'])
 
 
             #Remove posts that ask for donations
             donations = ['donate', 'donation']
-            if not any(word in post.selftext.lower() for word in donations):
-                comment += '\n\n- your post mentions donations. Please remove any mention to donations and message the moderators'
+            if any(word in post.selftext.lower() for word in donations):
+                remove.append(reasons['donate'])
 
-            removed = (comment != 'Your submission has been removed because:')
             #Remove post if any of above tests passed
-            if removed:
-                comment +='\n\n*I am a bot, this action was performed automatically. If you feel this was a mistake, please [message the moderators](http://reddit.com/message/compose?to=/r/mcservers&subject={0})*'.format(post.url)
+            if remove:
+                remove.append(reasons['append'].format(post.url))
+                comment = 'Your post has been removed because:\n\n' + '\n\n'.join(remove)
                 c = post.add_comment(comment)
                 c.distinguish()
                 post.remove()
-                print('Post was removed tags: {0} - {1} - {2}'.format(post.id, strip_utf8(post.title), post.url))
-            Submission(i=post.id, u=post.author.name, t=post.title, s=post.selftext, d=datetime.utcnow(), r=removed).save()
+                print('Post was removed: {0} - {1} - {2}'.format(post.id, strip_utf8(post.title), post.url))
+            #Submission(i=post.id, u=post.author.name, t=post.title, s=post.selftext, d=datetime.utcnow(), r=not not remove).save()
             already_done.append(post.id)
         time.sleep(5)
     except Exception as e:
