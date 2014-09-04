@@ -63,7 +63,7 @@ while True:
                 remove.append(reasons['notags'])
 
             #Remove posts with <350 body
-            if post.selftext and len(post.selftext) < 350 and not '[wanted]' in post.title.lower():
+            if post.selftext and len(post.selftext) < 250:
                 remove.append(reasons['shorttext'])
 
             #Nuke offline servers
@@ -100,7 +100,7 @@ while True:
                 c.distinguish()
                 post.remove()
                 print('Post was removed: {0} - {1} - {2}'.format(post.id, strip_utf8(post.title), post.url))
-            Submission(i=post.id, u=post.author.name, t=post.title, s=post.selftext, d=datetime.utcnow(), r=not not remove).save()
+            Submission(i=post.id, u=post.author.name, t=post.title, s=post.selftext, d=datetime.utcnow(), r=bool(remove)).save()
             already_done.append(post.id)
         time.sleep(5)
     except Exception as e:
