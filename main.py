@@ -71,7 +71,7 @@ while True:
                 remove.append(reasons['24x7'])
 
             #make sure they have rules
-            rules = ['rules', 'racism', 'sexism', 'griefing', 'greifing', 'mature']
+            rules = ['rules', 'racism', 'sexism', 'griefing', 'greifing']
             if not any(word in post.selftext.lower() for word in rules) and not '[wanted]' in post.title.lower():
                 remove.append(reasons['rules'])
 
