@@ -25,25 +25,18 @@ r = praw.Reddit(user_agent="mcservers-bot")
 r.login(config.USERNAME, config.PASSWORD)
 
 moderators = [x.name for x in r.get_subreddit('mcservers').get_moderators()]
-already_done = []
-
-for object in Submission.objects():
-    already_done.append(object.i)
-
-print ('Posts imported: {0}'.format(len(already_done)))
 
 with open('reasons.yml') as f:
     reasons = yaml.load(f.read())
-from pprint import pprint
-pprint(reasons)
-
+print('{0} posts in database'.format(len(Submission.objects())))
 while True:
     try: 
-        for post in r.get_subreddit(config.SUBREDDIT).get_new(limit=5):
-            if post.id in already_done:
+        for post in r.get_subreddit(config.SUBREDDIT).get_new(limit=10):
+            already_done = Submission.objects(i=post.id).first()
+            if already_done is not None:
                 continue
-            #if post.author.name in moderators:
-            #    continue
+            if post.author.name in moderators:
+                continue
 
 
             tags = re.findall(r'\[(.*?)\]', post.title)
@@ -67,9 +60,10 @@ while True:
                 remove.append(reasons['shorttext'])
 
             #Nuke offline servers
-            offline = ['offline', 'cracked', 'hamachi']
-            if any(word in post.title.lower() for word in offline) or any (word in post.selftext.lower() for word in offline):
-                remove.append(reasons['offline'])
+# Removed 2/24/15, 126 servers to date removed with this, 3 were actually offline mode....
+#            offline = ['offline', 'cracked', 'hamachi']
+#            if any(word in post.title.lower() for word in offline) or any (word in post.selftext.lower() for word in offline):
+#                remove.append(reasons['offline'])
 
             #nuke 24/7
             tfs = ['24/7', '24x7']
@@ -101,7 +95,6 @@ while True:
                 post.remove()
                 print('Post was removed: {0} - {1} - {2}'.format(post.id, strip_utf8(post.title), post.url))
             Submission(i=post.id, u=post.author.name, t=post.title, s=post.selftext, d=datetime.utcnow(), r=bool(remove)).save()
-            already_done.append(post.id)
         time.sleep(5)
     except Exception as e:
         print (e)
