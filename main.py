@@ -31,7 +31,7 @@ with open('reasons.yml') as f:
 print('{0} posts in database'.format(len(Submission.objects())))
 while True:
     try: 
-        for post in r.get_subreddit(config.SUBREDDIT).get_new(limit=10):
+        for post in r.get_subreddit(config.SUBREDDIT).get_new(limit=20):
             already_done = Submission.objects(i=post.id).first()
             if already_done is not None:
                 continue
