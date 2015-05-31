@@ -2,6 +2,8 @@ import praw
 import yaml
 import time
 import re
+import slack
+import slack.chat
 
 import local_config as config
 from mongoengine import *
@@ -19,6 +21,8 @@ def strip_utf8(str):
     return ''.join([x if ord(x) < 128 else "" for x in str])
 
 connect('mcservers')
+
+slack.api_token = config.SLACK_API_TOKEN
 
 r = praw.Reddit(user_agent="mcservers-bot")
 
@@ -93,7 +97,10 @@ while True:
                 c = post.add_comment(comment)
                 c.distinguish()
                 post.remove()
-                print('Post was removed: {0} - {1} - {2}'.format(post.id, strip_utf8(post.title), post.url))
+		remove_message = 'Post was removed: {0} - {1} - {2}'.format(post.id, strip_utf8(post.title), post.url)
+		print remove_message
+		slack.chat.post_message('#bot-log', remove_message, username=config.USERNAME)
+
             Submission(i=post.id, u=post.author.name, t=post.title, s=post.selftext, d=datetime.utcnow(), r=bool(remove)).save()
         time.sleep(5)
     except Exception as e:

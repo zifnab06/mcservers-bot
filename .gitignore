@@ -1,3 +1,9 @@
 *.pyc
 local_config.py
 .idea/
+bin/
+dump/
+include/
+local/
+lib/
+pip*json
