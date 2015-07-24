@@ -24,23 +24,25 @@ connect('mcservers')
 
 slack.api_token = config.SLACK_API_TOKEN
 
-r = praw.Reddit(user_agent="mcservers-bot")
+r = praw.Reddit(user_agent=u"/u/mcservers-bot v1.1")
 
 r.login(config.USERNAME, config.PASSWORD)
 
 moderators = [x.name for x in r.get_subreddit('mcservers').get_moderators()]
+slack.chat.post_message(u'#bot-log', u'Bot Started', username=config.USERNAME)
 
 with open('reasons.yml') as f:
     reasons = yaml.load(f.read())
-print('{0} posts in database'.format(len(Submission.objects())))
+print(u'{0} posts in database'.format(len(Submission.objects())))
 while True:
     try: 
-        for post in r.get_subreddit(config.SUBREDDIT).get_new(limit=20):
+        for post in r.get_subreddit(config.SUBREDDIT).get_new(limit=10):
+            import pdb; pdb.set_trace()
             already_done = Submission.objects(i=post.id).first()
             if already_done is not None:
                 continue
-            if post.author.name in moderators:
-                continue
+            chat_message = u'{0} - {1} \n user: {2}'.format(post.title, post.url, post.author.name)
+            slack.chat.post_message(u'#mcservers-feed', chat_message, username=config.USERNAME)
 
 
             tags = re.findall(r'\[(.*?)\]', post.title)
@@ -90,19 +92,21 @@ while True:
             if any(word in post.selftext.lower() for word in donations):
                 remove.append(reasons['donate'])
 
+            if post.author.name in moderators:
+                remove = False
             #Remove post if any of above tests passed
             if remove:
                 remove.append(reasons['append'].format(post.url))
-                comment = 'Your post has been removed because:\n\n' + '\n\n'.join(remove)
+                comment = u'Your post has been removed because:\n\n' + u'\n\n'.join(remove)
                 c = post.add_comment(comment)
                 c.distinguish()
                 post.remove()
-		remove_message = 'Post was removed: {0} - {1} - {2}'.format(post.id, strip_utf8(post.title), post.url)
-		print remove_message
-		slack.chat.post_message('#bot-log', remove_message, username=config.USERNAME)
+            remove_message = u'Post was removed: {0} - {1} - {2}'.format(post.id, strip_utf8(post.title), post.url)
+            print remove_message
+            slack.chat.post_message(u'#bot-log', remove_message, username=config.USERNAME)
 
             Submission(i=post.id, u=post.author.name, t=post.title, s=post.selftext, d=datetime.utcnow(), r=bool(remove)).save()
-        time.sleep(5)
+        time.sleep(30)
     except Exception as e:
         print (e)
         pass
