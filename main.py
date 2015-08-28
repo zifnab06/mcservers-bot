@@ -103,6 +103,7 @@ while True:
                 remove_message = u'Post was removed: {0} - {1} - {2}'.format(post.id, strip_utf8(post.title), post.url)
                 print remove_message
                 slack.chat.post_message(u'#bot-log', remove_message, username=config.USERNAME)
+                slack.chat.post_message(u'#mcservers-feed', remove_message, username=config.USERNAME)
 
             Submission(i=post.id, u=post.author.name, t=post.title, s=post.selftext, d=datetime.utcnow(), r=bool(remove)).save()
         time.sleep(30)
