@@ -10,14 +10,15 @@ from mongoengine import *
 from datetime import datetime
 
 class Submission(Document):
-    i = StringField()
-    u = StringField()
-    t = StringField()
-    s = StringField()
-    d = DateTimeField()
-    r = BooleanField()
+    i = StringField() #id
+    u = StringField() #user
+    t = StringField() #title
+    s = StringField() #selftext
+    d = DateTimeField() #date
+    r = BooleanField() #removed (by bot)
 
 def strip_utf8(str):
+    '''Used for removing utf8 characters - fixes errors in py2.7 for slack/mongo'''
     return ''.join([x if ord(x) < 128 else "" for x in str])
 
 connect('mcservers')
@@ -31,12 +32,17 @@ r.login(config.USERNAME, config.PASSWORD)
 moderators = [x.name for x in r.get_subreddit('mcservers').get_moderators()]
 slack.chat.post_message(u'#bot-log', u'Bot Started', username=config.USERNAME)
 
+#needs to be moved to a wiki config
 with open('reasons.yml') as f:
     reasons = yaml.load(f.read())
+
 print(u'{0} posts in database'.format(len(Submission.objects())))
+
+#Main loop. Loop forever, do things in a try/catch for when reddit dies. 
 while True:
     try: 
         for post in r.get_subreddit(config.SUBREDDIT).get_new(limit=10):
+            #TODO: claen this up. already_done used to contain a list of all posts, but bot was using 100% mem after a year
             already_done = Submission.objects(i=post.id).first()
             if already_done is not None:
                 continue
@@ -44,8 +50,10 @@ while True:
             slack.chat.post_message(u'#mcservers-feed', chat_message, username=config.USERNAME)
 
 
+            #Tag check. Find everything within square braces
             tags = re.findall(r'\[(.*?)\]', post.title)
 
+            #List of removal reasons
             remove = []
             bad_tags = []
             #Remove posts with invalid tags
@@ -64,12 +72,6 @@ while True:
             if post.selftext and len(post.selftext) < 350:
                 remove.append(reasons['shorttext'])
 
-            #Nuke offline servers
-# Removed 2/24/15, 126 servers to date removed with this, 3 were actually offline mode....
-#            offline = ['offline', 'cracked', 'hamachi']
-#            if any(word in post.title.lower() for word in offline) or any (word in post.selftext.lower() for word in offline):
-#                remove.append(reasons['offline'])
-
             #nuke 24/7
             tfs = ['24/7', '24x7']
             if any (word in post.title.lower() for word in tfs) or any (word in post.selftext.lower() for word in tfs):
@@ -81,7 +83,7 @@ while True:
                 remove.append(reasons['rules'])
 
 
-            #Remove posts with only wanted tag
+            #Remove posts with only wanted tag (require at least one other tag)
             if len(tags) == 1 and tags[0].lower() == 'wanted':
                 remove.append(reasons['wantednotags'])
 
@@ -91,8 +93,10 @@ while True:
             if any(word in post.selftext.lower() for word in donations):
                 remove.append(reasons['donate'])
 
+            #NEVER remove mod posts
             if post.author.name in moderators:
                 remove = False
+
             #Remove post if any of above tests passed
             if remove:
                 remove.append(reasons['append'].format(post.url))
@@ -106,7 +110,10 @@ while True:
                 slack.chat.post_message(u'#mcservers-feed', remove_message, username=config.USERNAME)
 
             Submission(i=post.id, u=post.author.name, t=post.title, s=post.selftext, d=datetime.utcnow(), r=bool(remove)).save()
+        #Sleep for 30 seconds, current max rate being 10 posts / 30 seconds
         time.sleep(30)
+
     except Exception as e:
+        '''We do nothing on an error but print the error - keeps bot from dying when reddit goes down'''
         print (e)
         pass
