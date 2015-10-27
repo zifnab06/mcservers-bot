@@ -61,7 +61,7 @@ while True:
                 remove.append(reasons['notags'])
 
             #Remove posts with <350 body
-            if post.selftext and len(post.selftext) < 250:
+            if post.selftext and len(post.selftext) < 350:
                 remove.append(reasons['shorttext'])
 
             #Nuke offline servers
