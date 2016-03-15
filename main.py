@@ -87,12 +87,6 @@ while True:
             if len(tags) == 1 and tags[0].lower() == 'wanted':
                 remove.append(reasons['wantednotags'])
 
-
-            #Remove posts that ask for donations
-            donations = ['donate', 'donation']
-            if any(word in post.selftext.lower() for word in donations):
-                remove.append(reasons['donate'])
-
             #NEVER remove mod posts
             if post.author.name in moderators:
                 remove = False
