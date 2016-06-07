@@ -49,60 +49,6 @@ while True:
             chat_message = u'{0} - {1} \n user: {2}'.format(post.title, post.url, post.author.name)
             slack.chat.post_message(u'#mcservers-feed', chat_message, username=config.USERNAME)
 
-
-            #Tag check. Find everything within square braces
-            tags = re.findall(r'\[(.*?)\]', post.title)
-
-            #List of removal reasons
-            remove = []
-            bad_tags = []
-            #Remove posts with invalid tags
-            for tag in tags:
-                if not tag.lower() in config.APPROVED_TAGLIST:
-                    bad_tags.append(tag)
-
-            for bad_tag in bad_tags:
-                remove.append(reasons['badtag'].format(bad_tag))
-
-            #Remove posts with no tags
-            if len(tags) == 0:
-                remove.append(reasons['notags'])
-
-            #Remove posts with <350 body
-            if post.selftext and len(post.selftext) < 350:
-                remove.append(reasons['shorttext'])
-
-            #nuke 24/7
-            tfs = ['24/7', '24x7']
-            if any (word in post.title.lower() for word in tfs) or any (word in post.selftext.lower() for word in tfs):
-                remove.append(reasons['24x7'])
-
-            #make sure they have rules
-            rules = ['rules', 'racism', 'sexism', 'griefing', 'greifing']
-            if not any(word in post.selftext.lower() for word in rules) and not '[wanted]' in post.title.lower():
-                remove.append(reasons['rules'])
-
-
-            #Remove posts with only wanted tag (require at least one other tag)
-            if len(tags) == 1 and tags[0].lower() == 'wanted':
-                remove.append(reasons['wantednotags'])
-
-            #NEVER remove mod posts
-            if post.author.name in moderators:
-                remove = False
-
-            #Remove post if any of above tests passed
-            if remove:
-                remove.append(reasons['append'].format(post.url))
-                comment = u'Your post has been removed because:\n\n' + u'\n\n'.join(remove)
-                c = post.add_comment(comment)
-                c.distinguish()
-                post.remove()
-                remove_message = u'Post was removed: {0} - {1} - {2}'.format(post.id, strip_utf8(post.title), post.url)
-                print remove_message
-                slack.chat.post_message(u'#bot-log', remove_message, username=config.USERNAME)
-                slack.chat.post_message(u'#mcservers-feed', remove_message, username=config.USERNAME)
-
             Submission(i=post.id, u=post.author.name, t=post.title, s=post.selftext, d=datetime.utcnow(), r=bool(remove)).save()
         #Sleep for 30 seconds, current max rate being 10 posts / 30 seconds
         time.sleep(30)
